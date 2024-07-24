@@ -5,9 +5,11 @@ const authRouter = require("./routes/authRoute");
 const app = express();
 
 // * All routes
+
 app.use("/api/v1/auth", authRouter);
 
 // * If no other route matches, this route will match (404 route)
+
 app.use("*", (req, res) => {
   res.status(404).json({
     status: "Fail",
