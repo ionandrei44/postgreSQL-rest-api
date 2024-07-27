@@ -4,6 +4,9 @@ const authRouter = require("./routes/authRoute");
 
 const app = express();
 
+// * Middleware to parse incoming JSON requests
+app.use(express.json());
+
 // * All routes
 
 app.use("/api/v1/auth", authRouter);
