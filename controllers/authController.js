@@ -1,5 +1,6 @@
 const user = require("../db/models/user");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 
 const generateToken = (payload) => {
   return jwt.sign(payload, process.env.JWT_SECRET, {
@@ -49,4 +50,42 @@ const signUp = async (req, res) => {
   });
 };
 
-module.exports = { signUp };
+const login = async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({
+      status: "Fail",
+      message: "Email and password are required",
+    });
+  }
+
+  const result = await user.findOne({ where: { email } });
+
+  if (!result) {
+    return res.status(401).json({
+      status: "Fail",
+      message: "Incorrect email and password",
+    });
+  }
+
+  const passwordsMatch = await bcrypt.compare(password, result.password);
+
+  if (!passwordsMatch) {
+    return res.status(401).json({
+      status: "Fail",
+      message: "Incorrect email and password",
+    });
+  }
+
+  const token = generateToken({
+    id: result.id,
+  });
+
+  return res.status(200).json({
+    status: "Success",
+    token,
+  });
+};
+
+module.exports = { signUp, login };
