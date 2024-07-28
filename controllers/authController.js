@@ -1,6 +1,8 @@
 const user = require("../db/models/user");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const catchAsync = require("../utils/catchAsync");
+const AppError = require("../utils/appError");
 
 const generateToken = (payload) => {
   return jwt.sign(payload, process.env.JWT_SECRET, {
@@ -8,15 +10,12 @@ const generateToken = (payload) => {
   });
 };
 
-const signUp = async (req, res) => {
+const signUp = catchAsync(async (req, res) => {
   const { userType, firstName, lastName, email, password, confirmPassword } =
     req.body;
 
   if (!["1", "2"].includes(userType)) {
-    return res.status(400).json({
-      status: "Fail",
-      message: "Invalid user type",
-    });
+    throw new AppError("Invalid user type", 400);
   }
 
   const newUser = await user.create({
@@ -28,6 +27,10 @@ const signUp = async (req, res) => {
     confirmPassword,
   });
 
+  if (!newUser) {
+    throw new AppError("Failed to create user", 400);
+  }
+
   const result = newUser.toJSON();
 
   delete result.password;
@@ -37,45 +40,24 @@ const signUp = async (req, res) => {
     id: result.id,
   });
 
-  if (!result) {
-    return res.status(400).json({
-      status: "Fail",
-      message: "Failed to create user",
-    });
-  }
-
   return res.status(201).json({
     status: "Success",
     data: result,
   });
-};
+});
 
-const login = async (req, res) => {
+const login = catchAsync(async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({
-      status: "Fail",
-      message: "Email and password are required",
-    });
+    throw new AppError("Email and password are required", 400);
   }
 
   const result = await user.findOne({ where: { email } });
+  const passwordsMatch = await bcrypt.compare(password, result?.password ?? "");
 
-  if (!result) {
-    return res.status(401).json({
-      status: "Fail",
-      message: "Incorrect email and password",
-    });
-  }
-
-  const passwordsMatch = await bcrypt.compare(password, result.password);
-
-  if (!passwordsMatch) {
-    return res.status(401).json({
-      status: "Fail",
-      message: "Incorrect email and password",
-    });
+  if (!result || !passwordsMatch) {
+    throw new AppError("Incorrect email or password", 401);
   }
 
   const token = generateToken({
@@ -86,6 +68,6 @@ const login = async (req, res) => {
     status: "Success",
     token,
   });
-};
+});
 
 module.exports = { signUp, login };
