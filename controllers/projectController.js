@@ -1,5 +1,7 @@
 const catchAsync = require("../utils/catchAsync");
 const project = require("../db/models/project");
+const user = require("../db/models/user");
+const AppError = require("../utils/appError");
 
 const createProject = catchAsync(async (req, res) => {
   const {
@@ -32,8 +34,8 @@ const createProject = catchAsync(async (req, res) => {
   });
 });
 
-const getAllProjects = catchAsync(async (req, res) => {
-  const result = await project.findAll();
+const getAllProjects = catchAsync(async (_, res) => {
+  const result = await project.findAll({ include: user });
 
   return res.json({
     status: "Success",
@@ -41,4 +43,16 @@ const getAllProjects = catchAsync(async (req, res) => {
   });
 });
 
-module.exports = { createProject, getAllProjects };
+const getProjectById = catchAsync(async (req, res) => {
+  const projectId = req.params.id;
+  const result = await project.findByPk(projectId, { include: user });
+
+  if (!result) throw new AppError("Project not found", 400);
+
+  return res.json({
+    status: "Success",
+    data: result,
+  });
+});
+
+module.exports = { createProject, getAllProjects, getProjectById };
