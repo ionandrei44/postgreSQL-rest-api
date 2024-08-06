@@ -45,6 +45,7 @@ module.exports = {
         type: Sequelize.ARRAY(Sequelize.STRING),
       },
       createdBy: {
+        allowNull: false,
         type: Sequelize.INTEGER,
         references: {
           model: "user",

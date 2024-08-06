@@ -70,4 +70,29 @@ const login = catchAsync(async (req, res) => {
   });
 });
 
-module.exports = { signUp, login };
+const authentication = catchAsync(async (req, _, next) => {
+  // * 1. Get the token from headers
+  let idToken = "";
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    idToken = req.headers.authorization.split(" ")[1];
+  }
+
+  if (!idToken) throw new AppError("Please login to get access", 401);
+
+  // * 2. Token verification
+  const tokenDetail = jwt.verify(idToken, process.env.JWT_SECRET);
+
+  // * 3. Get user from DB and add it to req object
+  const currentUser = await user.findByPk(tokenDetail.id);
+
+  if (!currentUser) throw new AppError("User doesn't exist", 400);
+
+  req.user = currentUser;
+  return next();
+});
+
+module.exports = { signUp, login, authentication };
